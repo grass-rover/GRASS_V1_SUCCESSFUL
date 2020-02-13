@@ -1,0 +1,145 @@
+#include <math.h>
+//motor 1 - front right
+const int m1_pin1 = 51; //control motor1
+const int m1_pin2 = 50; //control direccio contraria
+const int m1_vel_pin = 4; // pin de la velocitat
+//motor 2 - front left
+const int m2_pin1 = 46; //control motor1
+const int m2_pin2 = 47; //control direccio contraria
+const int m2_vel_pin = 5; // pin de la velocitat
+//motor 3 - back right
+const int m3_pin1 = 42; //control motor1
+const int m3_pin2 = 43; //control direccio contraria
+const int m3_vel_pin = 7; // pin de la velocitat
+//motor 4 - back left
+const int m4_pin1 = 38; //control motor1
+const int m4_pin2 = 39; //control direccio contraria
+const int m4_vel_pin = 6; // pin de la velocitat
+const int rx_vel = 10; //channel 1
+const int rx_gir = 11; //channel 2
+int velocitat_lineal = 0; //insertar valor
+int velocitat_angular = 0; //insertar valor
+int velocitat_lineal_llegida = 0;
+int velocitat_angular_llegida = 0;
+int w1, w2, w3, w4, vleft, vright;
+void setup() {
+  Serial.begin(9600);
+  pinMode(m1_pin1, OUTPUT);
+  pinMode(m1_pin2, OUTPUT);
+  pinMode(m1_vel_pin, OUTPUT);
+  pinMode(m2_pin1, OUTPUT);
+  pinMode(m2_pin2, OUTPUT);
+  pinMode(m2_vel_pin, OUTPUT);
+  pinMode(m3_pin1, OUTPUT);
+  pinMode(m3_pin2, OUTPUT);
+  pinMode(m3_vel_pin, OUTPUT);
+  pinMode(m4_pin1, OUTPUT);
+  pinMode(m4_pin2, OUTPUT);
+  pinMode(m4_vel_pin, OUTPUT);
+  pinMode(rx_vel, INPUT);
+  pinMode(rx_gir, INPUT);
+}
+void loop() {
+  llegir_receptor();
+  Serial.println("leido");
+  Serial.println(velocitat_lineal);
+  Serial.println(velocitat_angular);
+  if (velocitat_angular < 60 && velocitat_angular > -60)
+  {
+    velocitat_angular = 0;
+  }
+  if (velocitat_lineal < 40 && velocitat_lineal > -40)
+  {
+    velocitat_lineal = 0;
+  }
+  Serial.println("Antes de convertir");
+  Serial.println(velocitat_lineal);
+  Serial.println(velocitat_angular);
+  convertir_valors(velocitat_lineal, velocitat_angular, vleft, vright);
+  Serial.println("Convertits");
+  Serial.println(vleft);
+  Serial.println(vright);
+  if (vleft > 255)
+  {
+    vleft = 255;
+  }
+  if (vright > 255)
+  {
+    vright = 255;
+  }
+  if (vleft < -255)
+  {
+    vleft = -255;
+  }
+  if (vright < -255)
+  {
+    vright = -255;
+  }
+  w1 = vright;
+  w3 = vright;
+  w2 = vleft;
+  w4 = vleft;
+  Serial.println("Velocidad ejes: d/ i");
+  Serial.println(w1);
+  Serial.println(w2);
+  //  calcular_velocitats();
+  accionar_motor(m1_pin1, m1_pin2, m1_vel_pin, w1);
+  accionar_motor(m2_pin1, m2_pin2, m2_vel_pin, w2);
+  accionar_motor(m3_pin1, m3_pin2, m3_vel_pin, w3);
+  accionar_motor(m4_pin1, m4_pin2, m4_vel_pin, w4);
+  delay(50);
+}
+void llegir_receptor() {
+  velocitat_lineal_llegida = pulseIn(rx_vel, HIGH);
+  velocitat_angular_llegida = pulseIn(rx_gir, HIGH);
+  velocitat_lineal = map(velocitat_lineal_llegida, 1910, 1070 , -255, 255);
+  velocitat_angular = map(velocitat_angular_llegida, 1060 , 1910, -255, 255);
+ 
+  //    velocitat_lineal_llegida = pulseIn(rx_vel, HIGH);
+  //    velocitat_angular_llegida= pulseIn(rx_gir, HIGH);
+  //    velocitat_angular = map(velocitat_angular_lectura, 2870, 1600, -255, 255);
+}
+//void calcular_velocitats(){
+//  w1 = velocitat_lineal/2 + velocitat_angular/2;
+//  w2 = velocitat_lineal/2 - velocitat_angular/2;
+//  w3 = velocitat_lineal/2 + velocitat_angular/2;
+//  w4 = velocitat_lineal/2 - velocitat_angular/2;
+//}
+void accionar_motor(int pin1, int pin2, int vel, int velocitat) {
+  if (velocitat > 0) {
+    digitalWrite(pin1, HIGH);
+    digitalWrite(pin2, LOW);
+  }
+  else {
+    digitalWrite(pin1, LOW);
+    digitalWrite(pin2, HIGH);
+  }
+  analogWrite(vel, abs(velocitat));
+  //Serial.println(abs(velocitat));
+}
+void convertir_valors(int x, int y, int &left, int &right)
+{
+  float r, t, aux;
+  // convert to polar
+  aux = pow(x, 2) + pow(y, 2);
+  r = sqrt(aux);
+  t = atan2(y, x);
+  Serial.println("Polares");
+  Serial.println(r);
+  Serial.println(t);
+  // rotate 45 grados
+  t = t + 3.141592 / 4;
+  // cartesianas
+  left = r * cos(t);
+  right = r * sin(t);
+  Serial.println("Cartesianas");
+  Serial.println(left);
+  Serial.println(right);
+  //rescale
+  left = left * sqrt(2);
+  right = right * sqrt(2);
+  Serial.println("Cartesianas arreglades");
+  Serial.println(left);
+  Serial.println(right);
+  
+}
